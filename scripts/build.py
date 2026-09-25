@@ -32,9 +32,9 @@ PASTURA_KEYWORDS = [
 
 CROP_ORDER = ["Maiz", "Girasol", "Soja", "Sorgo", "Trigo", "Pasturas", "Garbanzos"]
 
-# La hoja "maiz y gira carry" repite (con otro formato) filas que ya están en
-# Girasol/Maiz, según confirmó Franco - la excluimos para no reprocesarla.
-EXCLUDED_SHEETS = {"maiz y gira carry"}
+# "maiz y gira carry" repite (con otro formato) filas que ya están en Girasol/Maiz,
+# y "nadia" es una planilla vieja que Franco confirmó que no hay que considerar.
+EXCLUDED_SHEETS = {"maiz y gira carry", "nadia"}
 
 # Color de fondo de la fila -> estado del lote (confirmado por Franco):
 #   rosa/salmón = lote nuevo | gris = alerta (problema de PG u otro aviso) | blanco/sin color = carry
