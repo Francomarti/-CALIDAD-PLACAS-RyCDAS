@@ -53,6 +53,10 @@ EXISTENCIA_OVERRIDES = {
     (1174.0, 7475888.0, "TANDIL CYO BASE AEREA"): 1,
     (1174.0, 7550422.0, "TANDIL CYO BASE AEREA"): 540,
     (1174.0, 7550423.0, "TANDIL CYO BASE AEREA"): 458,
+    # Confirmado con Franco: mismo error en dos lotes de soja (las de pasturas, en
+    # cambio, están bien así porque esas sí se miden en kg).
+    (1359.0, "BRC25100340B3", "GBELGRANO PROPIO"): 6,
+    (1211.0, "25/03-174A", "BOLIVAR PROPIO"): 4,
 }
 
 
