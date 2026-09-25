@@ -116,6 +116,8 @@ select#sortSel{
 .stat .l{font-size:12px; color:var(--ink-soft); margin-top:5px;}
 .stat.warn .n{color:var(--amber);}
 .stat.bad .n{color:var(--red);}
+.stat.clickable{cursor:pointer; transition:box-shadow .15s, border-color .15s;}
+.stat.clickable:hover{box-shadow:0 0 0 2px var(--line) inset; border-color:var(--ink-soft);}
 
 /* ---------- main ---------- */
 main{max-width:1180px; margin:0 auto; padding:16px 18px 60px;}
@@ -416,9 +418,17 @@ function renderStats(){
     <div class="stat"><div class="n">${totalMat}</div><div class="l">materiales</div></div>
     <div class="stat"><div class="n">${totalLotes}</div><div class="l">lotes con stock</div></div>
     <div class="stat"><div class="n">${nuevos}</div><div class="l">lotes nuevos</div></div>
-    <div class="stat ${alertas>0?'warn':''}"><div class="n">${alertas}</div><div class="l">lotes en alerta / PG &lt; 80%</div></div>
-    <div class="stat ${vencidos>0?'bad':''}"><div class="n">${vencidos}</div><div class="l">lotes vencidos</div></div>
+    <div class="stat clickable ${alertas>0?'warn':''}" id="statAlerta"><div class="n">${alertas}</div><div class="l">lotes en alerta / PG &lt; 80% →</div></div>
+    <div class="stat clickable ${vencidos>0?'bad':''}" id="statVencidos"><div class="n">${vencidos}</div><div class="l">lotes vencidos →</div></div>
   `;
+  document.getElementById('statAlerta').onclick = () => openLotList(
+    "Lotes en alerta",
+    l => l.estado==="alerta" || (l.pgv!==null && l.pgv!==undefined && l.pgv<80)
+  );
+  document.getElementById('statVencidos').onclick = () => openLotList(
+    "Lotes vencidos",
+    l => l.dias!==null && l.dias<0
+  );
 }
 
 function materialStatus(m){
@@ -462,6 +472,52 @@ function renderTable(){
     `;
     tr.onclick = () => openSheet(m);
     tbody.appendChild(tr);
+  });
+}
+
+function openLotList(title, predicate){
+  const sucOk = l => state.suc==="Todas" || l.suc===state.suc;
+  const mats = currentPool().filter(m => state.suc==="Todas" || m.suc.includes(state.suc));
+  const rows = [];
+  mats.forEach(m => {
+    m.lotes.forEach(l => { if(sucOk(l) && predicate(l)) rows.push({m, l}); });
+  });
+  rows.sort((a,b) => a.m.desc.localeCompare(b.m.desc,'es'));
+
+  const body = rows.map(({m,l}) => {
+    const vcls = vencClass(l.dias);
+    const vlab = vencLabel(l.dias, l.venc);
+    const pgc = pgClass(l.pgv);
+    const estadoBadge = l.estado ? `<span class="badge ${l.estado}">${ESTADO_LABEL[l.estado]}</span>` : `<span style="color:var(--ink-soft)">—</span>`;
+    return `<tr>
+      <td class="mat-name" style="font-size:13px;">${m.desc}<br><span style="font-weight:400;color:var(--ink-soft);font-size:11.5px;">${CROP_LABEL[m._crop]}</span></td>
+      <td><b>${l.suc}</b><br><span style="color:var(--ink-soft)">${l.dep||""}</span></td>
+      <td>${l.lote||"—"}</td>
+      <td>${estadoBadge}</td>
+      <td><span class="badge ${pgc}">${l.pg||"—"}${l.pg?'%':''}</span></td>
+      <td><span class="badge ${vcls}">${vlab}</span></td>
+    </tr>`;
+  }).join("");
+
+  const sheet = document.getElementById('sheet');
+  sheet.innerHTML = `
+    <div class="sheet-head">
+      <div><h2>${title}</h2><div class="art">${rows.length} lote${rows.length===1?'':'s'}${state.suc!=="Todas" ? " · "+state.suc : ""}</div></div>
+      <button class="closebtn" id="closeBtn" aria-label="Cerrar">✕</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table class="lots">
+      <thead><tr><th>Material</th><th>Sucursal / Depósito</th><th>Lote</th><th>Estado</th><th>PG</th><th>Vencimiento</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="6" style="color:var(--ink-soft);padding:16px 8px;">Sin lotes en esta categoría ahora mismo.</td></tr>`}</tbody>
+    </table>
+    </div>
+  `;
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('closeBtn').onclick = closeSheet;
+  Array.from(sheet.querySelectorAll('tbody tr')).forEach((tr, i) => {
+    if(!rows[i]) return;
+    tr.style.cursor = 'pointer';
+    tr.onclick = () => openSheet(rows[i].m);
   });
 }
 
