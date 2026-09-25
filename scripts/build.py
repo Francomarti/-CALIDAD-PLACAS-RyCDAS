@@ -43,6 +43,19 @@ ESTADO_ALERTA_RGB = {"FFAEABAB", "FF999999"}
 ESTADO_CARRY_RGB = {"FFFFFFFF"}
 
 
+# Correcciones manuales de datos, confirmadas con Franco: algunas filas se cargaron
+# con tres ceros de más por error de tipeo. Confirmado para los lotes 7550422 y
+# 7550423 (540 y 458 respectivamente); extendido a 7422887 y 7475888 porque
+# comparten artículo, depósito y observación ("Corteva/Horizonte 2026") con esos dos.
+# Clave: (articulo, lote, deposito) -> existencia correcta.
+EXISTENCIA_OVERRIDES = {
+    (1174.0, 7422887.0, "TANDIL CYO BASE AEREA"): 1,
+    (1174.0, 7475888.0, "TANDIL CYO BASE AEREA"): 1,
+    (1174.0, 7550422.0, "TANDIL CYO BASE AEREA"): 540,
+    (1174.0, 7550423.0, "TANDIL CYO BASE AEREA"): 458,
+}
+
+
 def classify_estado(cell):
     fill = cell.fill
     if fill is None or fill.fill_type is None:
@@ -247,6 +260,9 @@ def read_workbook(content: bytes):
             )
             row["cultivo"] = guess_crop(desc, sheet_norm)
             row["es_primaria"] = sheet_norm in CROP_NAMES
+            override_key = (row["articulo"], row["lote"], row["deposito"])
+            if override_key in EXISTENCIA_OVERRIDES:
+                row["existencia"] = EXISTENCIA_OVERRIDES[override_key]
             rows.append(row)
     return rows
 
