@@ -9,30 +9,30 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#F6F1E7; --bg-soft:#EFE8D9; --card:#FFFFFF; --ink:#221D1A; --ink-soft:#6B6259;
-  --line:#E4DACB; --bordo:#7A1630; --bordo-dark:#59101F; --bordo-tint:#F3E3E6;
-  --gold:#AD7F26; --gold-tint:#F6EEDA;
+  --bg:#F5F3EC; --bg-soft:#EDE9DD; --card:#FFFFFF; --ink:#1E1F1B; --ink-soft:#666358;
+  --line:#E1DDCF; --bordo:#0F7A45; --bordo-dark:#063F22; --accent:#0B6B3A;
+  --gold:#7A5E0C; --gold-tint:#FBF3D6;
   --green:#3E7A4E; --green-bg:#E7F1E7; --amber:#B8791E; --amber-bg:#FAEFDC;
-  --red:#AC3A32; --red-bg:#F8E6E3; --gray-bg:#ECE7DD;
+  --red:#AC3A32; --red-bg:#F8E6E3; --gray-bg:#EAE7DC;
   --focus:#2F6FB0;
   --radius:10px;
   font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#1B1713; --bg-soft:#221C17; --card:#26201A; --ink:#F1E9DD; --ink-soft:#B7AB9B;
-    --line:#3A3128; --bordo:#C24A63; --bordo-dark:#E37088; --bordo-tint:#3A1E24;
-    --gold:#D9AE5C; --gold-tint:#332A18;
+    --bg:#161712; --bg-soft:#1D1E18; --card:#23241D; --ink:#EDEBE0; --ink-soft:#AEAA9B;
+    --line:#34362B; --bordo:#0F7A45; --bordo-dark:#063F22; --accent:#5FE3A6;
+    --gold:#E8C24A; --gold-tint:#332A12;
     --green:#7BBE8C; --green-bg:#1D2E20; --amber:#E0A94E; --amber-bg:#332711;
-    --red:#E4776E; --red-bg:#3A201D; --gray-bg:#2A2420;
+    --red:#E4776E; --red-bg:#3A201D; --gray-bg:#282A21;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#1B1713; --bg-soft:#221C17; --card:#26201A; --ink:#F1E9DD; --ink-soft:#B7AB9B;
-  --line:#3A3128; --bordo:#C24A63; --bordo-dark:#E37088; --bordo-tint:#3A1E24;
-  --gold:#D9AE5C; --gold-tint:#332A18;
+  --bg:#161712; --bg-soft:#1D1E18; --card:#23241D; --ink:#EDEBE0; --ink-soft:#AEAA9B;
+  --line:#34362B; --bordo:#0F7A45; --bordo-dark:#063F22; --accent:#5FE3A6;
+  --gold:#E8C24A; --gold-tint:#332A12;
   --green:#7BBE8C; --green-bg:#1D2E20; --amber:#E0A94E; --amber-bg:#332711;
-  --red:#E4776E; --red-bg:#3A201D; --gray-bg:#2A2420;
+  --red:#E4776E; --red-bg:#3A201D; --gray-bg:#282A21;
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);}
@@ -145,7 +145,7 @@ main{max-width:1180px; margin:0 auto; padding:16px 18px 60px;}
 .tag.placa{background:var(--gold-tint); color:var(--gold);}
 .foot-row{display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:9px; border-top:1px solid var(--line);}
 .lotcount{font-size:11.5px; color:var(--ink-soft);}
-.expand-hint{font-size:11.5px; color:var(--bordo); font-weight:600;}
+.expand-hint{font-size:11.5px; color:var(--accent); font-weight:600;}
 
 .empty{padding:60px 10px; text-align:center; color:var(--ink-soft);}
 .empty b{display:block; font-family:'Fraunces',serif; font-size:18px; color:var(--ink); margin-bottom:6px; font-weight:600;}
