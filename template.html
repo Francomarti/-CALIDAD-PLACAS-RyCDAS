@@ -119,33 +119,38 @@ select#sortSel{
 
 /* ---------- main ---------- */
 main{max-width:1180px; margin:0 auto; padding:16px 18px 60px;}
-.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:12px;}
 
-.mcard{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  padding:14px 16px 12px; border-left:4px solid var(--gray-bg); cursor:pointer;
-}
-.mcard.st-green{border-left-color:var(--green);}
-.mcard.st-amber{border-left-color:var(--amber);}
-.mcard.st-red{border-left-color:var(--red);}
-.mcard h3{
-  font-family:'Fraunces',serif; font-weight:600; font-size:16.5px; margin:0 0 8px; line-height:1.25;
-}
-.mrow{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12.5px; color:var(--ink-soft); margin-bottom:6px;}
-.mrow b{color:var(--ink); font-weight:600;}
 .pgpill{
-  display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:12.5px; font-weight:600;
+  display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:12.5px; font-weight:600; white-space:nowrap;
 }
 .pgpill.green{background:var(--green-bg); color:var(--green);}
 .pgpill.amber{background:var(--amber-bg); color:var(--amber);}
 .pgpill.red{background:var(--red-bg); color:var(--red);}
 .pgpill.gray{background:var(--gray-bg); color:var(--ink-soft);}
-.tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;}
-.tag{font-size:11px; padding:3px 8px; border-radius:6px; background:var(--gray-bg); color:var(--ink-soft);}
-.tag.placa{background:var(--gold-tint); color:var(--gold);}
-.foot-row{display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:9px; border-top:1px solid var(--line);}
-.lotcount{font-size:11.5px; color:var(--ink-soft);}
-.expand-hint{font-size:11.5px; color:var(--accent); font-weight:600;}
+
+.tablewrap{
+  overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--card);
+  -webkit-overflow-scrolling:touch;
+}
+table.mtable{width:100%; min-width:760px; border-collapse:collapse; font-size:13px;}
+table.mtable thead th{
+  text-align:left; font-size:11px; font-weight:600; color:var(--ink-soft);
+  padding:11px 14px; border-bottom:1px solid var(--line); background:var(--bg-soft); white-space:nowrap;
+}
+table.mtable thead th.num, table.mtable td.num{text-align:right;}
+table.mtable tbody td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:middle;}
+table.mtable tbody tr{cursor:pointer; transition:background .1s;}
+table.mtable tbody tr:hover{background:var(--bg-soft);}
+table.mtable tbody tr:last-child td{border-bottom:none;}
+td.mat-name{font-family:'Fraunces',serif; font-weight:600; font-size:14px; white-space:nowrap;}
+td.num{font-variant-numeric:tabular-nums;}
+td.crop-tag, td.suc-list{color:var(--ink-soft); font-size:12px; white-space:nowrap;}
+td.chev{color:var(--ink-soft); text-align:right; font-size:15px;}
+.row-status{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:8px; flex:0 0 auto;}
+.row-status.green{background:var(--green);}
+.row-status.amber{background:var(--amber);}
+.row-status.red{background:var(--red);}
+.row-status.gray{background:var(--gray-bg);}
 
 .empty{padding:60px 10px; text-align:center; color:var(--ink-soft);}
 .empty b{display:block; font-family:'Fraunces',serif; font-size:18px; color:var(--ink); margin-bottom:6px; font-weight:600;}
@@ -232,7 +237,22 @@ footer.note{max-width:1180px; margin:0 auto; padding:0 18px 40px; font-size:11.5
 
 <main>
   <div class="stats" id="statsStrip"></div>
-  <div class="grid" id="cardGrid" style="margin-top:16px;"></div>
+  <div class="tablewrap" id="tableWrap" style="margin-top:16px;">
+    <table class="mtable">
+      <thead>
+        <tr>
+          <th>Material</th>
+          <th>Cultivo</th>
+          <th class="num">Existencia</th>
+          <th>PG</th>
+          <th>Placa sugerida</th>
+          <th>Sucursales</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="matTableBody"></tbody>
+    </table>
+  </div>
   <div class="empty" id="emptyState" style="display:none;">
     <b>No encontramos resultados</b>
     Probá con otra búsqueda o quitá algún filtro.
@@ -251,6 +271,8 @@ const CROP_ORDER = ["Maiz","Girasol","Soja","Sorgo","Trigo","Pasturas","Garbanzo
 const CROP_LABEL = {Maiz:"Maíz", Girasol:"Girasol", Soja:"Soja", Sorgo:"Sorgo", Trigo:"Trigo", Pasturas:"Pasturas/Forrajeras", Garbanzos:"Garbanzos"};
 
 let state = { crop: "Maiz", search: "", suc: "Todas", sort: "name" };
+
+CROP_ORDER.forEach(crop => { (DATA[crop]||[]).forEach(m => { m._crop = crop; }); });
 
 function pgClass(v){
   if(v===null||v===undefined) return "gray";
@@ -281,25 +303,34 @@ function fmtNum(n){
   return (r % 1 === 0) ? r.toLocaleString('es-AR') : r.toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1});
 }
 
-function allMaterials(){
+function isSearching(){
+  return state.search && state.search.trim() !== "";
+}
+
+function currentPool(){
+  if(isSearching()){
+    let all = [];
+    CROP_ORDER.forEach(crop => { all = all.concat(DATA[crop]||[]); });
+    return all;
+  }
   return DATA[state.crop] || [];
 }
 
 function sucursalesForCrop(){
   const set = new Set();
-  allMaterials().forEach(m => m.suc.forEach(s => set.add(s)));
+  currentPool().forEach(m => m.suc.forEach(s => set.add(s)));
   return Array.from(set).sort();
 }
 
 function matchesSearch(m, q){
   if(!q) return true;
   q = q.toLowerCase();
-  if(m.desc.toLowerCase().includes(q)) return true;
-  return m.lotes.some(l => (l.lote||"").toLowerCase().includes(q) || (l.dep||"").toLowerCase().includes(q));
+  if(String(m.desc||"").toLowerCase().includes(q)) return true;
+  return m.lotes.some(l => String(l.lote||"").toLowerCase().includes(q) || String(l.dep||"").toLowerCase().includes(q));
 }
 
 function filteredSorted(){
-  let items = allMaterials().filter(m => {
+  let items = currentPool().filter(m => {
     if(state.suc!=="Todas" && !m.suc.includes(state.suc)) return false;
     if(!matchesSearch(m, state.search)) return false;
     return true;
@@ -319,13 +350,18 @@ function filteredSorted(){
 function renderTabs(){
   const nav = document.getElementById('cropTabs');
   nav.innerHTML = "";
+  const searching = isSearching();
   CROP_ORDER.forEach(crop => {
     const mats = DATA[crop] || [];
     if(mats.length===0) return;
     const btn = document.createElement('button');
-    btn.className = crop===state.crop ? "active" : "";
+    btn.className = (!searching && crop===state.crop) ? "active" : "";
     btn.innerHTML = `${CROP_LABEL[crop]}<span class="count">${mats.length}</span>`;
-    btn.onclick = () => { state.crop = crop; state.suc="Todas"; renderAll(); };
+    btn.onclick = () => {
+      state.crop = crop; state.suc = "Todas"; state.search = "";
+      document.getElementById('searchInput').value = "";
+      renderAll();
+    };
     nav.appendChild(btn);
   });
 }
@@ -338,7 +374,7 @@ function renderSucChips(){
     const c = document.createElement('div');
     c.className = "chip" + (state.suc===val ? " active" : "");
     c.textContent = label;
-    c.onclick = () => { state.suc = val; renderCards(); renderStats(); };
+    c.onclick = () => { state.suc = val; renderTable(); renderStats(); };
     return c;
   };
   wrap.appendChild(mk("Todas las sucursales","Todas"));
@@ -347,7 +383,7 @@ function renderSucChips(){
 
 function renderStats(){
   const wrap = document.getElementById('statsStrip');
-  const mats = allMaterials().filter(m => state.suc==="Todas" || m.suc.includes(state.suc));
+  const mats = currentPool().filter(m => state.suc==="Todas" || m.suc.includes(state.suc));
   const totalMat = mats.length;
   const totalLotes = mats.reduce((a,m)=>a + m.lotes.filter(l=>state.suc==="Todas"||l.suc===state.suc).length, 0);
   const vencidos = mats.reduce((a,m)=>a + m.lotes.filter(l=>(state.suc==="Todas"||l.suc===state.suc) && l.dias!==null && l.dias<0).length, 0);
@@ -370,35 +406,35 @@ function materialStatus(m){
   return "green";
 }
 
-function renderCards(){
+function renderTable(){
   renderSucChips();
-  const grid = document.getElementById('cardGrid');
+  const tbody = document.getElementById('matTableBody');
   const items = filteredSorted();
-  document.getElementById('resultCount').textContent = `${items.length} material${items.length===1?'':'es'}`;
-  grid.innerHTML = "";
+  const searching = isSearching();
+  document.getElementById('resultCount').textContent = searching
+    ? `${items.length} resultado${items.length===1?'':'s'} en todos los cultivos`
+    : `${items.length} material${items.length===1?'':'es'}`;
+  tbody.innerHTML = "";
   document.getElementById('emptyState').style.display = items.length? "none":"block";
-  items.forEach((m, idx) => {
-    const st = materialStatus(m);
-    const card = document.createElement('div');
-    card.className = "mcard" + (st ? " st-"+st : "");
+  document.getElementById('tableWrap').style.display = items.length? "":"none";
+  items.forEach(m => {
+    const st = materialStatus(m) || "gray";
     const pgcls = pgClass(m.pgavg);
-    const pgtxt = m.pgavg===null||m.pgavg===undefined ? "Sin dato" : (m.pgmin===m.pgmax ? `${fmtNum(m.pgavg)}%` : `${fmtNum(m.pgmin)}–${fmtNum(m.pgmax)}%`);
-    const placaTxt = m.placas && m.placas.length ? m.placas.slice(0,2).join(" · ") : null;
-    card.innerHTML = `
-      <h3>${m.desc}</h3>
-      <div class="mrow"><span>Existencia disponible</span><b>${fmtNum(m.ex)}</b></div>
-      <div class="mrow"><span>Germinación (PG)</span><span class="pgpill ${pgcls}">${pgtxt}</span></div>
-      <div class="tags">
-        ${placaTxt ? `<span class="tag placa">Placa: ${placaTxt}</span>` : ``}
-        ${m.suc.slice(0,4).map(s=>`<span class="tag">${s}</span>`).join("")}
-      </div>
-      <div class="foot-row">
-        <span class="lotcount">${m.lotes.length} lote${m.lotes.length===1?'':'s'}</span>
-        <span class="expand-hint">Ver detalle →</span>
-      </div>
+    const pgtxt = m.pgavg===null||m.pgavg===undefined ? "—" : (m.pgmin===m.pgmax ? `${fmtNum(m.pgavg)}%` : `${fmtNum(m.pgmin)}–${fmtNum(m.pgmax)}%`);
+    const placaTxt = m.placas && m.placas.length ? m.placas.slice(0,2).join(" · ") : "—";
+    const sucTxt = m.suc.slice(0,3).join(", ") + (m.suc.length>3 ? ` +${m.suc.length-3}` : "");
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mat-name"><span class="row-status ${st}"></span>${m.desc}</td>
+      <td class="crop-tag">${CROP_LABEL[m._crop]}</td>
+      <td class="num">${fmtNum(m.ex)}</td>
+      <td><span class="pgpill ${pgcls}">${pgtxt}</span></td>
+      <td>${placaTxt}</td>
+      <td class="suc-list">${sucTxt}</td>
+      <td class="chev">›</td>
     `;
-    card.onclick = () => openSheet(m);
-    grid.appendChild(card);
+    tr.onclick = () => openSheet(m);
+    tbody.appendChild(tr);
   });
 }
 
@@ -430,7 +466,7 @@ function openSheet(m){
 
   sheet.innerHTML = `
     <div class="sheet-head">
-      <div><h2>${m.desc}</h2><div class="art">Artículo ${m.art ?? "—"} · ${CROP_LABEL[state.crop]}</div></div>
+      <div><h2>${m.desc}</h2><div class="art">Artículo ${m.art ?? "—"} · ${CROP_LABEL[m._crop]}</div></div>
       <button class="closebtn" id="closeBtn" aria-label="Cerrar">✕</button>
     </div>
     <div class="sheet-stats">
@@ -458,17 +494,17 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeSheet(); }
 
 document.getElementById('searchInput').addEventListener('input', (e)=>{
   state.search = e.target.value;
-  renderCards();
+  renderAll();
 });
 document.getElementById('sortSel').addEventListener('change', (e)=>{
   state.sort = e.target.value;
-  renderCards();
+  renderTable();
 });
 
 function renderAll(){
   renderTabs();
   renderStats();
-  renderCards();
+  renderTable();
 }
 
 document.getElementById('metaInfo').textContent = "Actualizado " + DATA.__meta.fecha;
