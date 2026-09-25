@@ -31,6 +31,33 @@ PASTURA_KEYWORDS = [
 ]
 
 CROP_ORDER = ["Maiz", "Girasol", "Soja", "Sorgo", "Trigo", "Pasturas", "Garbanzos"]
+
+# La hoja "maiz y gira carry" repite (con otro formato) filas que ya están en
+# Girasol/Maiz, según confirmó Franco - la excluimos para no reprocesarla.
+EXCLUDED_SHEETS = {"maiz y gira carry"}
+
+# Color de fondo de la fila -> estado del lote (confirmado por Franco):
+#   rosa/salmón = lote nuevo | gris = alerta (problema de PG u otro aviso) | blanco/sin color = carry
+ESTADO_NUEVO_RGB = {"FFF7CAAC"}
+ESTADO_ALERTA_RGB = {"FFAEABAB", "FF999999"}
+ESTADO_CARRY_RGB = {"FFFFFFFF"}
+
+
+def classify_estado(cell):
+    fill = cell.fill
+    if fill is None or fill.fill_type is None:
+        return "carry"
+    fg = fill.fgColor
+    if fg is None or fg.type != "rgb":
+        return None  # color de tema u otro caso no resuelto: lo dejamos sin clasificar
+    rgb = fg.rgb
+    if rgb in ESTADO_NUEVO_RGB:
+        return "nuevo"
+    if rgb in ESTADO_ALERTA_RGB:
+        return "alerta"
+    if rgb in ESTADO_CARRY_RGB:
+        return "carry"
+    return None
 CROP_LABEL = {
     "Maiz": "Maíz", "Girasol": "Girasol", "Soja": "Soja", "Sorgo": "Sorgo",
     "Trigo": "Trigo", "Pasturas": "Pasturas/Forrajeras", "Garbanzos": "Garbanzos",
@@ -172,6 +199,8 @@ def read_workbook(content: bytes):
     wb = openpyxl.load_workbook(BytesIO(content), data_only=True)
     rows = []
     for sheet_name in wb.sheetnames:
+        if sheet_name.strip().lower() in EXCLUDED_SHEETS:
+            continue
         ws = wb[sheet_name]
         headers = {}
         for c in range(1, ws.max_column + 1):
@@ -214,6 +243,7 @@ def read_workbook(content: bytes):
                 plantulas=norm(ws.cell(row=r, column=c_plant).value) if c_plant else None,
                 pms=norm(ws.cell(row=r, column=c_pms).value) if c_pms else None,
                 fuente=sheet_name,
+                estado=classify_estado(ws.cell(row=r, column=1)),
             )
             row["cultivo"] = guess_crop(desc, sheet_norm)
             row["es_primaria"] = sheet_norm in CROP_NAMES
@@ -262,6 +292,7 @@ def aggregate(rows):
         obs_set = sorted(set(str(l["observaciones"]) for l in lots if l.get("observaciones")))
         sucursales = sorted(set(l["sucursal"] for l in lots))
         min_dias = min([l["dias_venc"] for l in lots if l["dias_venc"] is not None], default=None)
+        estados = sorted(set(l["estado"] for l in lots if l.get("estado")))
 
         lotes_trim = []
         for l in sorted(lots, key=lambda x: (x["sucursal"], x["deposito"] or "", str(x["lote"] or ""))):
@@ -269,7 +300,7 @@ def aggregate(rows):
                 "dep": l["deposito"], "suc": l["sucursal"], "lote": l["lote"],
                 "venc": l["vencimiento"], "dias": l["dias_venc"], "ex": l["existencia"],
                 "cond": l["condicion"], "pg": l["pg_disp"], "pgv": l["pg_val"],
-                "obs": l["observaciones"], "placa": l["placa"],
+                "obs": l["observaciones"], "placa": l["placa"], "estado": l.get("estado"),
             }
             if l.get("cold_test"):
                 item["cold"] = l["cold_test"]
@@ -287,7 +318,7 @@ def aggregate(rows):
             "pgmax": max(pg_vals) if pg_vals else None,
             "pgavg": round(sum(pg_vals) / len(pg_vals), 1) if pg_vals else None,
             "placas": placas, "cold": cold_tests, "ener": energias, "obs": obs_set,
-            "suc": sucursales, "mindias": min_dias, "lotes": lotes_trim,
+            "suc": sucursales, "mindias": min_dias, "estados": estados, "lotes": lotes_trim,
         })
 
     for crop in by_crop:
