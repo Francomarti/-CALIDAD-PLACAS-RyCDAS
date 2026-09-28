@@ -32,9 +32,14 @@ PASTURA_KEYWORDS = [
 
 CROP_ORDER = ["Maiz", "Girasol", "Soja", "Sorgo", "Trigo", "Pasturas", "Garbanzos"]
 
-# "maiz y gira carry" repite (con otro formato) filas que ya están en Girasol/Maiz,
-# y "nadia" es una planilla vieja que Franco confirmó que no hay que considerar.
-EXCLUDED_SHEETS = {"maiz y gira carry", "nadia"}
+# "nadia" es una planilla vieja que Franco confirmó que no hay que considerar.
+EXCLUDED_SHEETS = {"nadia"}
+
+# "maiz y gira carry" tiene la semilla de campañas anteriores (Franco separó la
+# semilla nueva de maíz/girasol en sus propias pestañas, "Girasol nuevo" y
+# "Maiz nuevo"). Se incluye en el tablero pero marcada como origen "anterior"
+# para distinguirla de la semilla "actual" del resto de las pestañas.
+CARRY_SHEET_NORM = "maiz y gira carry"
 
 # Color de fondo de la fila -> estado del lote (confirmado por Franco):
 #   rosa/salmón = lote nuevo | gris = alerta (problema de PG u otro aviso) | blanco/sin color = carry
@@ -160,9 +165,11 @@ def guess_crop(descripcion, sheet_name_norm):
         return "Garbanzos"
     if any(k in d for k in PASTURA_KEYWORDS):
         return "Pasturas"
-    # si la hoja se llama como un cultivo conocido, usamos eso como respaldo
-    if sheet_name_norm in CROP_NAMES:
-        return "Maiz" if sheet_name_norm == "maíz" else sheet_name_norm.capitalize()
+    # si la hoja se llama (o empieza) como un cultivo conocido, usamos eso como
+    # respaldo (p.ej. "Girasol nuevo" o "Maiz nuevo" -> Girasol / Maiz)
+    for name in CROP_NAMES:
+        if sheet_name_norm == name or sheet_name_norm.startswith(name + " "):
+            return "Maiz" if name in ("maiz", "maíz") else name.capitalize()
     return "Otros"
 
 
@@ -263,7 +270,8 @@ def read_workbook(content: bytes):
                 estado=classify_estado(ws.cell(row=r, column=1)),
             )
             row["cultivo"] = guess_crop(desc, sheet_norm)
-            row["es_primaria"] = sheet_norm in CROP_NAMES
+            row["origen"] = "anterior" if sheet_norm == CARRY_SHEET_NORM else "actual"
+            row["es_primaria"] = row["origen"] == "actual"
             override_key = (row["articulo"], row["lote"], row["deposito"])
             if override_key in EXISTENCIA_OVERRIDES:
                 row["existencia"] = EXISTENCIA_OVERRIDES[override_key]
@@ -313,6 +321,7 @@ def aggregate(rows):
         sucursales = sorted(set(l["sucursal"] for l in lots))
         min_dias = min([l["dias_venc"] for l in lots if l["dias_venc"] is not None], default=None)
         estados = sorted(set(l["estado"] for l in lots if l.get("estado")))
+        origenes = sorted(set(l["origen"] for l in lots if l.get("origen")))
 
         lotes_trim = []
         for l in sorted(lots, key=lambda x: (x["sucursal"], x["deposito"] or "", str(x["lote"] or ""))):
@@ -321,6 +330,7 @@ def aggregate(rows):
                 "venc": l["vencimiento"], "dias": l["dias_venc"], "ex": l["existencia"],
                 "cond": l["condicion"], "pg": l["pg_disp"], "pgv": l["pg_val"],
                 "obs": l["observaciones"], "placa": l["placa"], "estado": l.get("estado"),
+                "origen": l.get("origen"),
             }
             if l.get("cold_test"):
                 item["cold"] = l["cold_test"]
@@ -338,7 +348,8 @@ def aggregate(rows):
             "pgmax": max(pg_vals) if pg_vals else None,
             "pgavg": round(sum(pg_vals) / len(pg_vals), 1) if pg_vals else None,
             "placas": placas, "cold": cold_tests, "ener": energias, "obs": obs_set,
-            "suc": sucursales, "mindias": min_dias, "estados": estados, "lotes": lotes_trim,
+            "suc": sucursales, "mindias": min_dias, "estados": estados, "origenes": origenes,
+            "lotes": lotes_trim,
         })
 
     for crop in by_crop:
