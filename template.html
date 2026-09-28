@@ -200,6 +200,12 @@ table.lots tr:last-child td{border-bottom:none;}
 .badge.nuevo{background:#F7CAAC; color:#7A3A0E;}
 .badge.alerta{background:#D9D5D5; color:#4A4646;}
 .badge.carry{background:var(--gray-bg); color:var(--ink-soft);}
+.badge.anterior{background:var(--gold-tint); color:var(--gold);}
+.tag-anterior{
+  display:inline-block; margin-left:7px; padding:1px 7px; border-radius:5px;
+  font-size:10.5px; font-weight:600; background:var(--gold-tint); color:var(--gold);
+  vertical-align:middle; white-space:nowrap;
+}
 
 footer.note{max-width:1180px; margin:0 auto; padding:0 18px 40px; font-size:11.5px; color:var(--ink-soft);}
 
@@ -231,6 +237,7 @@ footer.note{max-width:1180px; margin:0 auto; padding:0 18px 40px; font-size:11.5
 <div class="filterbar" id="filterBar">
   <div class="chipgroup" id="sucChips"></div>
   <div class="chipgroup" id="estadoChips"></div>
+  <div class="chipgroup" id="origenChips"></div>
   <div class="spacer"></div>
   <select id="sortSel">
     <option value="name">Nombre A–Z</option>
@@ -276,8 +283,16 @@ const DATA = __DATA__;
 const CROP_ORDER = ["Maiz","Girasol","Soja","Sorgo","Trigo","Pasturas","Garbanzos"];
 const CROP_LABEL = {Maiz:"Maíz", Girasol:"Girasol", Soja:"Soja", Sorgo:"Sorgo", Trigo:"Trigo", Pasturas:"Pasturas/Forrajeras", Garbanzos:"Garbanzos"};
 
-let state = { crop: "Maiz", search: "", suc: "Todas", estado: "Todos", sort: "name" };
+let state = { crop: "Maiz", search: "", suc: "Todas", estado: "Todos", origen: "Todas", sort: "name" };
 const ESTADO_LABEL = { nuevo: "Nuevo", alerta: "Alerta", carry: "Carry" };
+const ORIGEN_LABEL = { actual: "Actual", anterior: "Año anterior" };
+
+function origenTag(m){
+  const os = m.origenes || [];
+  if(os.length===1 && os[0]==="anterior") return `<span class="tag-anterior">Año anterior</span>`;
+  if(os.includes("anterior")) return `<span class="tag-anterior">+ año anterior</span>`;
+  return "";
+}
 
 CROP_ORDER.forEach(crop => { (DATA[crop]||[]).forEach(m => { m._crop = crop; }); });
 
@@ -340,6 +355,7 @@ function filteredSorted(){
   let items = currentPool().filter(m => {
     if(state.suc!=="Todas" && !m.suc.includes(state.suc)) return false;
     if(state.estado!=="Todos" && !(m.estados||[]).includes(state.estado)) return false;
+    if(state.origen!=="Todas" && !(m.origenes||[]).includes(state.origen)) return false;
     if(!matchesSearch(m, state.search)) return false;
     return true;
   });
@@ -405,6 +421,21 @@ function renderEstadoChips(){
   wrap.appendChild(mk("Carry","carry"));
 }
 
+function renderOrigenChips(){
+  const wrap = document.getElementById('origenChips');
+  wrap.innerHTML = "";
+  const mk = (label,val) => {
+    const c = document.createElement('div');
+    c.className = "chip" + (state.origen===val ? " active" : "");
+    c.textContent = label;
+    c.onclick = () => { state.origen = val; renderTable(); renderStats(); };
+    return c;
+  };
+  wrap.appendChild(mk("Todas las campañas","Todas"));
+  wrap.appendChild(mk("Actual","actual"));
+  wrap.appendChild(mk("Año anterior","anterior"));
+}
+
 function renderStats(){
   const wrap = document.getElementById('statsStrip');
   const sucOk = l => state.suc==="Todas" || l.suc===state.suc;
@@ -445,6 +476,7 @@ function materialStatus(m){
 function renderTable(){
   renderSucChips();
   renderEstadoChips();
+  renderOrigenChips();
   const tbody = document.getElementById('matTableBody');
   const items = filteredSorted();
   const searching = isSearching();
@@ -462,7 +494,7 @@ function renderTable(){
     const sucTxt = m.suc.slice(0,3).join(", ") + (m.suc.length>3 ? ` +${m.suc.length-3}` : "");
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="mat-name"><span class="row-status ${st}"></span>${m.desc}</td>
+      <td class="mat-name"><span class="row-status ${st}"></span>${m.desc}${origenTag(m)}</td>
       <td class="crop-tag">${CROP_LABEL[m._crop]}</td>
       <td class="num">${fmtNum(m.ex)}</td>
       <td><span class="pgpill ${pgcls}">${pgtxt}</span></td>
@@ -489,11 +521,12 @@ function openLotList(title, predicate){
     const vlab = vencLabel(l.dias, l.venc);
     const pgc = pgClass(l.pgv);
     const estadoBadge = l.estado ? `<span class="badge ${l.estado}">${ESTADO_LABEL[l.estado]}</span>` : `<span style="color:var(--ink-soft)">—</span>`;
+    const origenBadge = l.origen==="anterior" ? `<span class="badge anterior" style="margin-left:4px;">Año anterior</span>` : "";
     return `<tr>
       <td class="mat-name" style="font-size:13px;">${m.desc}<br><span style="font-weight:400;color:var(--ink-soft);font-size:11.5px;">${CROP_LABEL[m._crop]}</span></td>
       <td><b>${l.suc}</b><br><span style="color:var(--ink-soft)">${l.dep||""}</span></td>
       <td>${l.lote||"—"}</td>
-      <td>${estadoBadge}</td>
+      <td>${estadoBadge}${origenBadge}</td>
       <td><span class="badge ${pgc}">${l.pg||"—"}${l.pg?'%':''}</span></td>
       <td><span class="badge ${vcls}">${vlab}</span></td>
     </tr>`;
@@ -535,10 +568,11 @@ function openSheet(m){
     if(l.plant) extras.push(`Plántulas vigorosas: ${l.plant}`);
     if(l.pms) extras.push(`PMS: ${l.pms}`);
     const estadoBadge = l.estado ? `<span class="badge ${l.estado}">${ESTADO_LABEL[l.estado]}</span>` : `<span style="color:var(--ink-soft)">—</span>`;
+    const origenBadge = l.origen==="anterior" ? `<span class="badge anterior" style="margin-left:4px;">Año anterior</span>` : "";
     return `<tr>
       <td><b>${l.suc}</b><br><span style="color:var(--ink-soft)">${l.dep||""}</span></td>
       <td>${l.lote||"—"}</td>
-      <td>${estadoBadge}</td>
+      <td>${estadoBadge}${origenBadge}</td>
       <td>${fmtNum(l.ex)}</td>
       <td>${l.cond||"—"}</td>
       <td><span class="badge ${pgc}">${l.pg||"—"}${l.pg?'%':''}</span></td>
@@ -551,7 +585,7 @@ function openSheet(m){
 
   sheet.innerHTML = `
     <div class="sheet-head">
-      <div><h2>${m.desc}</h2><div class="art">Artículo ${m.art ?? "—"} · ${CROP_LABEL[m._crop]}</div></div>
+      <div><h2>${m.desc}${origenTag(m)}</h2><div class="art">Artículo ${m.art ?? "—"} · ${CROP_LABEL[m._crop]}</div></div>
       <button class="closebtn" id="closeBtn" aria-label="Cerrar">✕</button>
     </div>
     <div class="sheet-stats">
