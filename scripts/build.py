@@ -244,7 +244,9 @@ def read_workbook(content: bytes):
         c_cond, c_pg = col("condicion"), col("pg")
         c_obs, c_placa = col("observaciones"), col("placas sugeridas", "placas sugerida")
         c_cold, c_energia = col("cold test"), col("test de energia")
-        c_plant, c_pms = col("pantulas vigorosas"), col("pms")
+        c_plant = col("pantulas vigorosas")
+        # Peso de mil semillas: en el Excel la columna se llama "Peso x mil" (Soja Multiplicacion, col. I).
+        c_pms = col("peso x mil", "peso de mil", "peso por mil", "peso mil", "pms")
 
         sheet_norm = sheet_name.strip().lower()
         for r in range(2, ws.max_row + 1):

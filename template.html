@@ -569,7 +569,7 @@ function openSheet(m){
     if(l.cold) extras.push(`Cold test: ${l.cold}`);
     if(l.ener) extras.push(`Test energía: ${l.ener}`);
     if(l.plant) extras.push(`Plántulas vigorosas: ${l.plant}`);
-    if(l.pms) extras.push(`PMS: ${l.pms}`);
+    if(l.pms) extras.push(`Peso x mil: ${l.pms}`);
     const estadoBadge = l.estado ? `<span class="badge ${l.estado}">${ESTADO_LABEL[l.estado]}</span>` : `<span style="color:var(--ink-soft)">—</span>`;
     const origenBadge = l.origen==="anterior" ? `<span class="badge anterior" style="margin-left:4px;">Año anterior</span>` : "";
     return `<tr>
