@@ -531,6 +531,7 @@ function openLotList(title, predicate){
       <td>${l.lote||"—"}</td>
       <td>${estadoBadge}${origenBadge}</td>
       <td><span class="badge ${pgc}">${l.pg||"—"}${l.pg?'%':''}</span></td>
+      <td class="num">${l.pms||"—"}</td>
       <td><span class="badge ${vcls}">${vlab}</span></td>
     </tr>`;
   }).join("");
@@ -543,8 +544,8 @@ function openLotList(title, predicate){
     </div>
     <div style="overflow-x:auto;">
     <table class="lots">
-      <thead><tr><th>Material</th><th>Sucursal / Depósito</th><th>Lote</th><th>Estado</th><th>PG</th><th>Vencimiento</th></tr></thead>
-      <tbody>${body || `<tr><td colspan="6" style="color:var(--ink-soft);padding:16px 8px;">Sin lotes en esta categoría ahora mismo.</td></tr>`}</tbody>
+      <thead><tr><th>Material</th><th>Sucursal / Depósito</th><th>Lote</th><th>Estado</th><th>PG</th><th class="num">Peso x mil</th><th>Vencimiento</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="7" style="color:var(--ink-soft);padding:16px 8px;">Sin lotes en esta categoría ahora mismo.</td></tr>`}</tbody>
     </table>
     </div>
   `;
@@ -569,7 +570,6 @@ function openSheet(m){
     if(l.cold) extras.push(`Cold test: ${l.cold}`);
     if(l.ener) extras.push(`Test energía: ${l.ener}`);
     if(l.plant) extras.push(`Plántulas vigorosas: ${l.plant}`);
-    if(l.pms) extras.push(`Peso x mil: ${l.pms}`);
     const estadoBadge = l.estado ? `<span class="badge ${l.estado}">${ESTADO_LABEL[l.estado]}</span>` : `<span style="color:var(--ink-soft)">—</span>`;
     const origenBadge = l.origen==="anterior" ? `<span class="badge anterior" style="margin-left:4px;">Año anterior</span>` : "";
     return `<tr>
@@ -579,9 +579,10 @@ function openSheet(m){
       <td>${fmtNum(l.ex)}</td>
       <td>${l.cond||"—"}</td>
       <td><span class="badge ${pgc}">${l.pg||"—"}${l.pg?'%':''}</span></td>
+      <td class="num">${l.pms||"—"}</td>
       <td>${l.placa||"—"}</td>
       <td><span class="badge ${vcls}">${vlab}</span></td>
-    </tr>${extras.length ? `<tr><td colspan="8" style="padding-top:0;color:var(--ink-soft);font-size:11.5px;">${extras.join(" · ")}</td></tr>` : ""}`;
+    </tr>${extras.length ? `<tr><td colspan="9" style="padding-top:0;color:var(--ink-soft);font-size:11.5px;">${extras.join(" · ")}</td></tr>` : ""}`;
   }).join("");
 
   const obsList = m.obs && m.obs.length ? m.obs.join(" · ") : null;
@@ -600,7 +601,7 @@ function openSheet(m){
     <div style="overflow-x:auto;">
     <table class="lots">
       <thead><tr>
-        <th>Sucursal / Depósito</th><th>Lote</th><th>Estado</th><th>Exist.</th><th>Cond.</th><th>PG</th><th>Placa sugerida</th><th>Vencimiento</th>
+        <th>Sucursal / Depósito</th><th>Lote</th><th>Estado</th><th>Exist.</th><th>Cond.</th><th>PG</th><th class="num">Peso x mil</th><th>Placa sugerida</th><th>Vencimiento</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
