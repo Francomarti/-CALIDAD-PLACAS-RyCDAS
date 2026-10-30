@@ -245,8 +245,10 @@ def read_workbook(content: bytes):
         c_obs, c_placa = col("observaciones"), col("placas sugeridas", "placas sugerida")
         c_cold, c_energia = col("cold test"), col("test de energia")
         c_plant = col("pantulas vigorosas")
-        # Peso de mil semillas: en el Excel la columna se llama "Peso x mil" (Soja Multiplicacion, col. I).
-        c_pms = col("peso x mil", "peso de mil", "peso por mil", "peso mil", "pms")
+        # Peso de mil semillas: en el Excel la columna se llamó "Peso x mil" y desde el 28/10 "P/1000"
+        # (Soja Multiplicacion y Soja Original, col. I).
+        c_pms = col("p/1000", "p / 1000", "p1000", "p/mil", "peso x mil", "peso de mil", "peso por mil",
+                    "peso mil", "pms")
 
         sheet_norm = sheet_name.strip().lower()
         for r in range(2, ws.max_row + 1):
