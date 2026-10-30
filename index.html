@@ -261,6 +261,7 @@ footer.note{max-width:1180px; margin:0 auto; padding:0 18px 40px; font-size:11.5
           <th>Cultivo</th>
           <th class="num">Existencia</th>
           <th>PG</th>
+          <th class="num">Peso x mil</th>
           <th>Placa sugerida</th>
           <th>Sucursales</th>
           <th></th>
@@ -501,6 +502,7 @@ function renderTable(){
       <td class="crop-tag">${CROP_LABEL[m._crop]}</td>
       <td class="num">${fmtNum(m.ex)}</td>
       <td><span class="pgpill ${pgcls}">${pgtxt}</span></td>
+      <td class="num">${pmsResumen(m)}</td>
       <td>${placaTxt}</td>
       <td class="suc-list">${sucTxt}</td>
       <td class="chev">›</td>
@@ -508,6 +510,18 @@ function renderTable(){
     tr.onclick = () => openSheet(m);
     tbody.appendChild(tr);
   });
+}
+
+// Peso de mil del material: rango entre sus lotes (en el Excel puede venir "157.3/156.8" o "169,4").
+function pmsResumen(m){
+  const vals = [];
+  (m.lotes||[]).forEach(l => String(l.pms||"").split("/").forEach(s => {
+    const v = parseFloat(s.trim().replace(",", "."));
+    if(!isNaN(v) && v>0) vals.push(v);
+  }));
+  if(!vals.length) return "—";
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  return mn===mx ? fmtNum(mn) : `${fmtNum(mn)}–${fmtNum(mx)}`;
 }
 
 function openLotList(title, predicate){
